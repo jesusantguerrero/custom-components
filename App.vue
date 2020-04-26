@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import HiAudio from "./componets/hi-audio.vue";
+import HiAudio from "./components/hi-audio.vue";
 
 export default {
   components: {
