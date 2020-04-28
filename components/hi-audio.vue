@@ -1,19 +1,34 @@
 <template>
   <div class="custom-audio" ref="localAudio">
-    <audio :id="id" controls :src="src" type="audio/mpeg"> </audio>
+    <!-- <audio :id="id" controls :src="src"> </audio> -->
     <div class="icon" @click="togglePlay">
       <i class="fa" :class="icon"></i>
     </div>
     <div class="audio-body">
       <h5 class="subtitle">{{ subtitle }}</h5>
-      <h4 class="title"> {{ title }} </h4>
+      <h3 class="title"> {{ title }} </h3>
       <div class="duration">
-        <span>{{ times.currentMins}}:{{ times.currentSecs }} / {{ times.durationMins }}:{{ times.durationSecs }}</span>
+        <span>{{ currentTime }} / {{ times.durationMins }}:{{ times.durationSecs }}</span>
       </div>
-       <div class="progress" ref="progress">
-        <div class="progress__filled"></div>
+      <div class="low-controls">
+       <div class="progress" ref="Progress" @click="setCurrentTime">
+        <div class="progress__filled" ref="ProgressFilled" :title="currentTime"></div>
        </div>
+
+        <div class="volume-controls">
+          <div class="volume__icon" @click="toggleMute">
+            <i :class="iconMuted"></i>
+          </div>
+          <div class="volume">
+            <input type="range" min="0" step="0.1" max="1" @change="setVolume">
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- <div class="volume">
+      <input type="range" max="10" min="0" step="1">
+    </div> -->
   </div>
 </template>
 
@@ -44,20 +59,17 @@ export default {
       durationMins: 0,
       durationSecs: 0
     },
-    isPlaying: false 
+    isPlaying: false,
+    isMuted: false
   }),
   created() {
     this.id = this.uuid();
   },
   mounted() {
     const component = this.$refs.localAudio
-    this.elAudio = component.querySelector('audio');
+    this.elAudio = new Audio(this.src);
     this.loaded = true;
     this.elAudio.addEventListener('timeupdate', this.updateProgress)
-    this.controls = {
-      progress: component.querySelector('.progress')
-    }
-    this.controls.progress.addEventListener('click', this.setCurrentTime)
     this.elAudio.oncanplay = () => {
       this.getDuration();
     }
@@ -65,6 +77,14 @@ export default {
   computed: {
     icon() {
       return this.isPlaying ? 'fa-pause' : 'fa-play'
+    },
+
+    iconMuted() {
+      return this.isMuted ? 'fa fa-volume-off' : 'fa fa-volume-up';
+    },
+
+    currentTime() {
+      return `${this.times.currentMins}:${this.times.currentSecs}` 
     }
   },
   methods: {
@@ -81,6 +101,11 @@ export default {
       this.isPlaying = !this.elAudio.paused
     },
 
+    toggleMute() {
+      this.elAudio.muted = !this.isMuted;  
+      this.isMuted = this.elAudio.muted
+    },
+
     play() {
       this.elAudio.play()
     },
@@ -90,13 +115,18 @@ export default {
     },
 
     stop() {
-      this.elAudio.stop()
+      this.isPlaying = false;
+      this.elAudio.pause()
+      this.elAudio.currentTime = 0
     },
 
     updateProgress() {
-      const currentProgress = this.controls.progress.querySelector('.progress__filled')
+      const currentProgress = this.$refs.ProgressFilled
       const width = this.elAudio.currentTime / this.elAudio.duration * 100
       currentProgress.style.flexBasis = `${width}%`
+      if (width == 100) {
+        this.stop()
+      }
       this.getCurrentTime();
     },
 
@@ -116,14 +146,19 @@ export default {
         timeKeys = timeKeys || Object.keys(this.times)
         timeKeys.forEach( key => {
           const value = this.times[key];
-          this.times[key] = value < 10 ? `0${value}` : value; 
+          this.times[key] = value < 10 ? `0${+value}` : value; 
         })
     },
 
+    setVolume(e) {
+      this.elAudio.volume = e.target.value;
+    },
+
     setCurrentTime(e) {
-      const currentTime = (e.offsetX / this.controls.progress.offsetWidth ) * this.elAudio.duration
-        this.elAudio.currentTime = parseInt(currentTime);
-        console.log(currentTime)  
+      if (this.$refs.ProgressFilled) {
+        const currentTime = (e.offsetX / this.$refs.Progress.offsetWidth ) * this.elAudio.duration
+          this.elAudio.currentTime = currentTime;
+      }
     }
   }
 }
@@ -154,10 +189,11 @@ h1, p {
 
 .custom-audio .icon {
   background: silver;
-  width: 70px;
-  height: 70px;
-  min-width: 70px;
+  width: 80px;
+  height: 80px;
+  min-width: 80px;
   display: flex;
+  font-size: 30px;
   justify-content: center;
   align-items: center;
   cursor: pointer;
@@ -176,10 +212,53 @@ h1, p {
 }
 
 .audio-body .title {
-  margin-bottom: 5px;
+  margin-bottom: 2px;
 }
 .progress:hover {
   height:10px;
+}
+
+.low-controls {
+  display: flex;
+  align-items: center;
+  /* height: 30px; */
+  overflow: hidden;
+}
+
+.volume-controls {
+  display: flex;
+  width: fit-content;
+  cursor: pointer;
+  transition: all ease .3s;
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  height: 30px;
+  border: 2px solid transparent;
+  padding: 2px;
+  border-radius: 10px;
+  margin-left: 5px;
+}
+.volume {
+  width: 0;
+  transition: all ease .50s;
+}
+
+.volume-controls:hover {
+    overflow: hidden;
+    background: #ccc;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    margin-left: 5px;
+}
+
+.volume-controls:hover .volume {
+  width: 200px;
+}
+
+.volume__icon {
+  padding-top: 1px;
+  margin: 0 10px;
 }
 
 .progress {
@@ -190,18 +269,50 @@ h1, p {
   height:5px;
   transition:height 0.3s;
   background: #aaa;
-  cursor:ew-resize;
+  cursor: pointer
 }
+
+
 
 .progress__filled {
   width:50%;
   background:#666;
   flex:0;
   flex-basis:0%;
+  position: relative;
+}
+
+.progress:hover .progress__filled::after {
+  content: '';
+  width: 10px;
+  height: 100%;
+  display: block;
+  position: absolute;
+  background: black;
+  right: 0;
 }
 
 .duration {
   width: 100%;
   text-align: right;
+}
+
+input[type="range"]
+{
+     cursor: pointer;
+     -webkit-appearance: none;
+     background-color: #e6e6e6;
+}
+input[type="range"]:active, input[type="range"]:focus
+{
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb
+{
+     -webkit-appearance: none;
+     width: 10px;
+     height: 10px;
+     background: #555;
 }
 </style>

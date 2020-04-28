@@ -32,6 +32,11 @@ export default {
         src: './music/maps.mp3',
         title: 'Maps',
         subtitle: 'Maroon V'
+      },
+      {
+        src: ' http://upload.wikimedia.org/wikipedia/commons/f/f5/Good_Morning_to_All.ogg',
+        title: 'Wiki',
+        subtitle: 'Pedia'
       }
     ]
   })
